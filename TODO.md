@@ -39,12 +39,12 @@ Compare three approaches to handling rotated MNIST digits:
   - [x] Save trained models
 
 ### Phase 4: Evaluation & Testing
-- [ ] Create evaluation script (`test/rotational_mnist/evaluate.py`)
-  - [ ] Load all three trained models
-  - [ ] Evaluate on each rotation variant (0°, 15°, 30°, 45°, 60°, 90°, 180°, 270°)
-  - [ ] Compute accuracy for each rotation angle
-  - [ ] Generate comparison table
-  - [ ] Create visualization (accuracy vs rotation angle)
+- [x] Create evaluation script (`scripts/rotational_mnist/evaluate.py`)
+  - [x] Load all three trained models
+  - [x] Evaluate on each rotation variant (0°, 15°, 30°, 45°, 60°, 90°, 180°, 270°)
+  - [x] Compute accuracy for each rotation angle
+  - [x] Generate comparison table
+  - [x] Create visualization (accuracy vs rotation angle)
 
 ### Phase 5: Results & Documentation
 - [ ] Generate results summary

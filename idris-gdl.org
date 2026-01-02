@@ -5,12 +5,20 @@
 ** INBOX CUDA: force configuration
 ** INBOX Clean separation of README.md, CLAUDE.md, STRUCTURE.md, CONTRIBUTING.md, etc.
 ** INBOX Make claude aware of this file
+** INBOX Centralize logging config
 ** INBOX Claude issue execution checklist:
 - Docs updated
 - Tests written
 - Tests pass
 - Entrypoints in makefile
 - ...
+** INBOX Use Qodo or some agentic orchestrator tool
+** INBOX Use claude to help with dev log
+** INBOX Find nice job runner for long-running ML tasks
+** INBOX Consider using trello instead of org mode
+** INBOX https://timmyjose.github.io/docs/2020-09-01-matrix-operations-in-idris.html
+** INBOX Idris 2: QTT in Practice
+** INBOX https://github.com/QUVA-Lab/escnn
 * Project Foundations
 ** DONE Clean up repo, establish Python scaffolding
 - [X] Move python to project base

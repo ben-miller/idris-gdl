@@ -6,6 +6,7 @@ Trains models:
 - baseline: Standard CNN on upright MNIST only
 - augmented: Standard CNN on augmented dataset (all rotations)
 - equivariant: ESCNN equivariant CNN on upright MNIST only
+- e2wrn: E(2)-equivariant Wide ResNet on upright MNIST only
 
 Loads configuration from config/config-default.yml and config/config.yml (if present).
 Results saved to models/training_results.json.
@@ -14,6 +15,7 @@ Usage:
     poetry run python scripts/rotational_mnist/train.py                # Train all three
     poetry run python scripts/rotational_mnist/train.py baseline       # Train baseline only
     poetry run python scripts/rotational_mnist/train.py baseline augmented  # Train two
+    poetry run python scripts/rotational_mnist/train.py e2wrn          # Train E2WRN only
 """
 
 import argparse
@@ -26,17 +28,15 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from lib.config import TrainingConfig
+from lib.config import TrainingConfig, configure_logging
 from test.experiments.rotational_mnist.train_baseline import train_standard_cnn_baseline
 from test.experiments.rotational_mnist.train_augmented import train_standard_cnn_augmented
-from test.experiments.rotational_mnist.train_equivariant import train_escnn_equivariant
+from test.experiments.rotational_mnist.train_e2_simple import train_e2_simple
+from test.experiments.rotational_mnist.train_e2wrn import train_e2wrn
 
 # Set up logging
+configure_logging()
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 
 # Fixed paths
 DATA_DIR = "data"
@@ -51,8 +51,8 @@ def main() -> None:
     parser.add_argument(
         "models",
         nargs="*",
-        default=["baseline", "augmented", "equivariant"],
-        help="Models to train: baseline, augmented, equivariant (default: all three)",
+        default=["baseline", "augmented", "e2_simple", "e2wrn"],
+        help="Models to train: baseline, augmented, e2_simple, e2wrn (default: all four)",
     )
     args = parser.parse_args()
 
@@ -104,21 +104,37 @@ def main() -> None:
         logger.info(f"Augmented final accuracy: {tracker2.val_accuracies[-1]:.4f}")
         logger.info(f"Saved augmented results to {augmented_results_file}\n")
 
-    if "equivariant" in args.models:
+    if "e2_simple" in args.models:
         logger.info("=" * 60)
-        logger.info("Training: ESCNN equivariant CNN on upright MNIST")
-        model3, tracker3 = train_escnn_equivariant(
+        logger.info("Training: Lightweight E(2)-equivariant CNN on upright MNIST")
+        model5, tracker5 = train_e2_simple(
             DATA_DIR, OUTPUT_DIR, config.epochs, config.batch_size
         )
-        all_results["escnn_equivariant"] = tracker3.to_dict()
+        all_results["e2_simple"] = tracker5.to_dict()
 
-        # Save equivariant results
-        equivariant_results_file = Path(OUTPUT_DIR) / "training_results.equivariant.json"
-        with open(equivariant_results_file, "w") as f:
-            json.dump(tracker3.to_dict(), f, indent=2)
-        logger.info(f"Equivariant training time: {tracker3.elapsed_time:.2f}s")
-        logger.info(f"Equivariant final accuracy: {tracker3.val_accuracies[-1]:.4f}")
-        logger.info(f"Saved equivariant results to {equivariant_results_file}\n")
+        # Save E2_simple results
+        e2_simple_results_file = Path(OUTPUT_DIR) / "training_results.e2_simple.json"
+        with open(e2_simple_results_file, "w") as f:
+            json.dump(tracker5.to_dict(), f, indent=2)
+        logger.info(f"E2_simple training time: {tracker5.elapsed_time:.2f}s")
+        logger.info(f"E2_simple final accuracy: {tracker5.val_accuracies[-1]:.4f}")
+        logger.info(f"Saved E2_simple results to {e2_simple_results_file}\n")
+
+    if "e2wrn" in args.models:
+        logger.info("=" * 60)
+        logger.info("Training: E(2)-equivariant Wide ResNet on upright MNIST")
+        model6, tracker6 = train_e2wrn(
+            DATA_DIR, OUTPUT_DIR, config.epochs, config.batch_size
+        )
+        all_results["e2wrn"] = tracker6.to_dict()
+
+        # Save E2WRN results
+        e2wrn_results_file = Path(OUTPUT_DIR) / "training_results.e2wrn.json"
+        with open(e2wrn_results_file, "w") as f:
+            json.dump(tracker6.to_dict(), f, indent=2)
+        logger.info(f"E2WRN training time: {tracker6.elapsed_time:.2f}s")
+        logger.info(f"E2WRN final accuracy: {tracker6.val_accuracies[-1]:.4f}")
+        logger.info(f"Saved E2WRN results to {e2wrn_results_file}\n")
 
     # Also save combined results for reference
     results_file = Path(OUTPUT_DIR) / "training_results.json"

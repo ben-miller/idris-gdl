@@ -15,7 +15,7 @@ from typing import Dict
 import torch
 import torch.nn as nn
 
-from lib.models import StandardCNN, ESCNNCnn
+from lib.models import StandardCNN, E2SimpleCNN
 from lib.training import evaluate
 from test.rotational_mnist.mnist_loader import get_rotation_test_loaders
 
@@ -144,10 +144,10 @@ def print_results_table(results: Dict[str, Dict[int, float]]) -> None:
         results: Dictionary mapping case name -> (angle -> accuracy)
     """
     angles = [0, 15, 30, 45, 60, 90, 180, 270]
-    cases = ["baseline", "augmented", "equivariant"]
+    cases = ["baseline", "augmented", "e2_simple"]
 
     # Print header
-    header = "Angle (°) | Baseline | Augmented | Equivariant"
+    header = "Angle (°) | Baseline | Augmented | E2_Simple"
     print(header)
     print("-" * len(header))
 
@@ -182,16 +182,21 @@ def main(
     models_dir: str = "models",
     results_dir: str = "models",
     batch_size: int = 32,
+    models: list = None,
 ) -> None:
     """
-    Evaluate all three trained models on rotated MNIST test sets.
+    Evaluate trained models on rotated MNIST test sets.
 
     Args:
         data_dir: Directory containing MNIST data files
         models_dir: Directory containing trained model files
         results_dir: Directory to save evaluation results
         batch_size: Batch size for evaluation
+        models: List of models to evaluate (default: all)
     """
+    if models is None:
+        models = ["baseline", "augmented", "e2_simple"]
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
 
@@ -212,72 +217,66 @@ def main(
     all_results = {}
 
     # ====== Case 1: Standard CNN on upright MNIST ======
-    logger.info("\n" + "=" * 60)
-    logger.info("Case 1: Standard CNN trained on upright MNIST only")
-    logger.info("=" * 60)
+    if "baseline" in models:
+        logger.info("\n" + "=" * 60)
+        logger.info("Case 1: Standard CNN trained on upright MNIST only")
+        logger.info("=" * 60)
 
-    # Try multiple possible file names for the baseline model
-    possible_paths = [
-        Path(models_dir) / "standard_cnn_baseline.pt",
-        Path(models_dir) / "case1_standard_cnn.pt",
-    ]
-    model_path = None
-    for path in possible_paths:
-        if path.exists():
-            model_path = path
-            break
+        # Try multiple possible file names for the baseline model
+        possible_paths = [
+            Path(models_dir) / "standard_cnn_baseline.pt",
+            Path(models_dir) / "case1_standard_cnn.pt",
+        ]
+        model_path = None
+        for path in possible_paths:
+            if path.exists():
+                model_path = path
+                break
 
-    if model_path:
-        logger.info(f"Loading model from {model_path}")
-        model = load_model(str(model_path), StandardCNN, device)
-        results_1 = evaluate_model_on_rotations(model, test_loaders, device)
-        all_results["baseline"] = results_1
-        logger.info(f"✓ Case 1 complete")
-    else:
-        logger.warning(f"✗ Case 1 model not found (tried: {possible_paths})")
-        all_results["baseline"] = {}
+        if model_path:
+            logger.info(f"Loading model from {model_path}")
+            model = load_model(str(model_path), StandardCNN, device)
+            results_1 = evaluate_model_on_rotations(model, test_loaders, device)
+            all_results["baseline"] = results_1
+            logger.info(f"✓ Case 1 complete")
+        else:
+            logger.warning(f"✗ Case 1 model not found (tried: {possible_paths})")
+            all_results["baseline"] = {}
 
     # ====== Case 2: Standard CNN on augmented dataset ======
-    logger.info("\n" + "=" * 60)
-    logger.info("Case 2: Standard CNN trained on augmented dataset")
-    logger.info("=" * 60)
-    model_path = Path(models_dir) / "standard_cnn_augmented.pt"
+    if "augmented" in models:
+        logger.info("\n" + "=" * 60)
+        logger.info("Case 2: Standard CNN trained on augmented dataset")
+        logger.info("=" * 60)
+        model_path = Path(models_dir) / "standard_cnn_augmented.pt"
 
-    if model_path.exists():
-        logger.info(f"Loading model from {model_path}")
-        model = load_model(str(model_path), StandardCNN, device)
-        results_2 = evaluate_model_on_rotations(model, test_loaders, device)
-        all_results["augmented"] = results_2
-        logger.info(f"✓ Case 2 complete")
-    else:
-        logger.warning(f"✗ Case 2 model not found at {model_path}")
-        all_results["augmented"] = {}
+        if model_path.exists():
+            logger.info(f"Loading model from {model_path}")
+            model = load_model(str(model_path), StandardCNN, device)
+            results_2 = evaluate_model_on_rotations(model, test_loaders, device)
+            all_results["augmented"] = results_2
+            logger.info(f"✓ Case 2 complete")
+        else:
+            logger.warning(f"✗ Case 2 model not found at {model_path}")
+            all_results["augmented"] = {}
 
-    # ====== Case 3: ESCNN equivariant CNN ======
-    logger.info("\n" + "=" * 60)
-    logger.info("Case 3: ESCNN equivariant CNN trained on upright MNIST only")
-    logger.info("=" * 60)
+    # ====== Case 3: Lightweight E(2)-equivariant CNN ======
+    if "e2_simple" in models:
+        logger.info("\n" + "=" * 60)
+        logger.info("Case 3: Lightweight E(2)-equivariant CNN trained on upright MNIST only")
+        logger.info("=" * 60)
 
-    # Try multiple possible file names for the ESCNN model
-    possible_paths = [
-        Path(models_dir) / "escnn_cnn.pt",
-        Path(models_dir) / "case3_escnn.pt",
-    ]
-    model_path = None
-    for path in possible_paths:
-        if path.exists():
-            model_path = path
-            break
+        model_path = Path(models_dir) / "e2_simple_cnn.pt"
 
-    if model_path:
-        logger.info(f"Loading model from {model_path}")
-        model = load_model(str(model_path), ESCNNCnn, device)
-        results_3 = evaluate_model_on_rotations(model, test_loaders, device)
-        all_results["equivariant"] = results_3
-        logger.info(f"✓ Case 3 complete")
-    else:
-        logger.warning(f"✗ Case 3 model not found (tried: {possible_paths})")
-        all_results["equivariant"] = {}
+        if model_path.exists():
+            logger.info(f"Loading model from {model_path}")
+            model = load_model(str(model_path), E2SimpleCNN, device)
+            results_3 = evaluate_model_on_rotations(model, test_loaders, device)
+            all_results["e2_simple"] = results_3
+            logger.info(f"✓ Case 3 complete")
+        else:
+            logger.warning(f"✗ Case 3 model not found at {model_path}")
+            all_results["e2_simple"] = {}
 
     # ====== Save results ======
     logger.info("\n" + "=" * 60)
